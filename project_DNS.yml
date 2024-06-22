@@ -1,0 +1,50 @@
+---
+- name:
+  hosts: name
+  tasks:
+    - name: Enable CodeReady Builder Repository
+      command: subscription-manager repos --enable codeready-builder-for-rhel-9-{{ ansible_architecture }}-rpms
+      become: yes
+
+    - name: Install EPEL Repository
+      dnf:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        state: present
+      become: yes
+ 
+    - name:  install bind
+      dnf:
+        name: "bind,bind-utils"
+        state: present
+
+    - name: Satrt the service
+      service:
+        name: named
+        state: started
+        enabled: yes
+      ignore_errors: yes    
+
+    - name: configure /etc/named.conf
+      template:
+        src: named.conf.j2
+        dest: /etc/named.conf
+        owner: root
+        group: root
+        mode: 0644
+      vars:
+        domain: rajhans.store
+        zone_file: /var/named/rajhans
+
+    - name: copy named.empty
+      command: cp -p /var/named/named.empty /var/named/rajhans
+
+    - name: rajhans
+      template:
+        src: rajhans.j2
+        dest: /var/named/rajhans
+
+    - name: Restart the named service
+      service:
+        name: named
+        state: restarted      
+
